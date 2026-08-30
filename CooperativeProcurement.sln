@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CooperativeProcurement.Infr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CooperativeProcurement.WebAPI", "CooperativeProcurement.WebAPI\CooperativeProcurement.WebAPI.csproj", "{4561EBC7-CE5E-4452-B852-A6912454649D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CooperativeProcurement.Analyzers", "CooperativeProcurement.Analyzers\CooperativeProcurement.Analyzers.csproj", "{68E2B3EB-1583-4B98-A507-48F006EF19BF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{4561EBC7-CE5E-4452-B852-A6912454649D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4561EBC7-CE5E-4452-B852-A6912454649D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4561EBC7-CE5E-4452-B852-A6912454649D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{68E2B3EB-1583-4B98-A507-48F006EF19BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{68E2B3EB-1583-4B98-A507-48F006EF19BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{68E2B3EB-1583-4B98-A507-48F006EF19BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{68E2B3EB-1583-4B98-A507-48F006EF19BF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
