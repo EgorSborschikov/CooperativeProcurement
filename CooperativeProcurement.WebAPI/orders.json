@@ -1,0 +1,34 @@
+[
+  {
+    "Id": "be3f692e-c1c8-49e7-b8c5-a0d4b34043ed",
+    "SupplierName": "\u041E\u041E\u041E \u0420\u043E\u043C\u0430\u0448\u043A\u0430",
+    "OrderDate": "2026-08-30T09:55:46.5651117+07:00",
+    "Items": [
+      {
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Name": "\u041C\u043E\u043B\u043E\u043A\u043E",
+        "Quantity": 10,
+        "UnitPrice": 85.50,
+        "TotalPrice": 855.00
+      }
+    ],
+    "TotalAmount": 855.00,
+    "Status": 0
+  },
+  {
+    "Id": "f25c046e-7b0c-4a93-bfc1-4f798918ee18",
+    "SupplierName": "\u041E\u041E\u041E \u0420\u043E\u043C\u0430\u0448\u043A\u0430",
+    "OrderDate": "2026-08-30T09:56:51.0392258+07:00",
+    "Items": [
+      {
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa7",
+        "Name": "\u0425\u043B\u0435\u0431",
+        "Quantity": 20,
+        "UnitPrice": 45.00,
+        "TotalPrice": 900.00
+      }
+    ],
+    "TotalAmount": 900.00,
+    "Status": 0
+  }
+]

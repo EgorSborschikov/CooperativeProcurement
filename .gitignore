@@ -1,0 +1,39 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+
+# Build output
+bin/
+obj/
+out/
+build/
+
+# IDE files
+*.sln.docstates
+*.cache
+*.tmp
+
+# Publish
+*.pubxml.user
+
+# Rider
+.idea/
+*.sln.iml
+
+# VS Code
+.vscode/
+
+# Runtime
+*.log
+*.pid
+*.seed
+
+# Database files
+*.mdf
+*.ldf
+
+# Backup files
+*.bak
+*.old
