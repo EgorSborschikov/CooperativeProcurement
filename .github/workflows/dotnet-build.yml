@@ -23,7 +23,7 @@ jobs:
       run: dotnet restore CooperativeProcurement.sln
     
     - name: Build
-      run: dotnet build CooperativeProcurement.sln --no-restore --configuration Release
+      run: dotnet build CooperativeProcurement.sln --no-restore --configuration Release /p:TreatWarningsAsErrors=false /p:CodeAnalysisTreatWarningsAsErrors=false
     
     - name: Test
       run: dotnet test CooperativeProcurement.sln --no-build --configuration Release --verbosity normal

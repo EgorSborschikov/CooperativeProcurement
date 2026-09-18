@@ -19,11 +19,11 @@ namespace CooperativeProcurement.Analyzers.Analyzers;
 public class CustomAnalyzer : DiagnosticAnalyzer
 {
     // Определение диагностики
-    private const string DiagnosticId = "CP0003";
+    private const string _diagnosticId = "CP0003";
     private const string Category = "CustomRules";
 
     private static readonly DiagnosticDescriptor Rule = new(
-        id: DiagnosticId,
+        id: _diagnosticId,
         title: "Заголовок правила",
         messageFormat: "Сообщение для '{0}'",
         category: Category,
