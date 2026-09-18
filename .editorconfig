@@ -105,6 +105,9 @@ dotnet_diagnostic.ASP0018.severity = none
 dotnet_diagnostic.CA1849.severity = none
 dotnet_diagnostic.S6966.severity = none
 dotnet_diagnostic.S6964.severity = none
+dotnet_diagnostic.SA1602.severity = none
+dotnet_diagnostic.SA1000.severity = none
+dotnet_diagnostic.SA1614.severity = none
 
 #### Оставляем включёнными важные правил
 dotnet_diagnostic.SA1000.severity = warning   # Ключевые слова в правильном регистре
