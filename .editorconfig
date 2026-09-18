@@ -110,7 +110,6 @@ dotnet_diagnostic.SA1000.severity = none
 dotnet_diagnostic.SA1614.severity = none
 
 #### Оставляем включёнными важные правил
-dotnet_diagnostic.SA1000.severity = warning   # Ключевые слова в правильном регистре
 dotnet_diagnostic.SA1001.severity = warning   # Запятые
 dotnet_diagnostic.SA1009.severity = warning   # Операторы с пробелами
 dotnet_diagnostic.SA1010.severity = none   # Пробел перед [
