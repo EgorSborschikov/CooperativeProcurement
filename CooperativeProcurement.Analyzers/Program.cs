@@ -1,7 +1,11 @@
-﻿using CooperativeProcurement.Analyzers.Data;
+﻿using CooperativeProcurement.Analyzers.Analyzers;
+using CooperativeProcurement.Analyzers.Data;
 using CooperativeProcurement.Analyzers.Services;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.MSBuild;
+using System;
 using System.Text;
 
 namespace CooperativeProcurement.Analyzers
@@ -43,7 +47,23 @@ namespace CooperativeProcurement.Analyzers
 
             // Загрузка решения
             var solution = await workspace.OpenSolutionAsync(solutionPath);
-            Console.WriteLine($"Загружено {solution.Projects.Count()} проектов\n");
+            Console.WriteLine($"Загружено проектов: {solution.Projects.Count()}\n");
+
+            // Запрос режима анализатора
+            Console.WriteLine("Выберите режим анализа комментариев:");
+            Console.WriteLine("  1 - Синтаксический (через тривии)");
+            Console.WriteLine("  2 - Семантический (через SemanticModel)");
+            Console.Write("Ваш выбор [1]: ");
+
+            var choice = Console.ReadLine();
+            MethodCommentAnalyzer.Mode = choice == "2"
+                ? AnalysisMode.Semantic
+                : AnalysisMode.Syntactic;
+
+            Console.WriteLine($"Режим: {MethodCommentAnalyzer.Mode}\n");
+
+            // Запуск проверки комментариев
+            await CheckMethodComments(solution);
 
             // Анализ всех классов
             await AnalyzeAllClasses(solution);
@@ -97,6 +117,132 @@ namespace CooperativeProcurement.Analyzers
             Console.WriteLine("\nАнализ завершен");
         }
 
+        static async Task CheckMethodComments(Solution solution)
+        {
+            Console.WriteLine("Проверка XML-комментариев у публичных методов");
+
+            // Получение дескриптора правила
+            var analyzer = new MethodCommentAnalyzer();
+            var rule = analyzer.SupportedDiagnostics.First();
+
+            var problems = new List<(string File, string Class, string Method, int Line)>();
+
+            foreach (var project in solution.Projects)
+            {
+                foreach (var document in project.Documents)
+                {
+                    if (document.Name.EndsWith(".g.cs") || document.Name.EndsWith(".designer.cs"))
+                        continue;
+
+                    var root = await document.GetSyntaxTreeAsync();
+                    if (root == null) continue;
+
+                    var syntaxRoot = await root.GetRootAsync();
+                    var semanticModel = await document.GetSemanticModelAsync();
+
+                    var methods = syntaxRoot.DescendantNodes().OfType<MethodDeclarationSyntax>();
+
+                    foreach (var method in methods)
+                    {
+                        bool shouldReport = false;
+
+                        // Выбираем подход в зависимости от режима
+                        if (MethodCommentAnalyzer.Mode == AnalysisMode.Semantic && semanticModel != null)
+                        {
+                            // Семантический подход
+                            var symbol = semanticModel.GetDeclaredSymbol(method);
+                            if (symbol == null) continue;
+                            if (symbol.DeclaredAccessibility == Accessibility.Private) continue;
+                            if (symbol.IsOverride) continue;
+
+                            var documentation = symbol.GetDocumentationCommentXml();
+                            shouldReport = string.IsNullOrEmpty(documentation);
+                        }
+                        else
+                        {
+                            // Синтаксический подход
+                            var isPublic = method.Modifiers.Any(SyntaxKind.PublicKeyword);
+                            var isProtected = method.Modifiers.Any(SyntaxKind.ProtectedKeyword);
+                            var isInternal = method.Modifiers.Any(SyntaxKind.InternalKeyword);
+                            if (!isPublic && !isProtected && !isInternal) continue;
+                            if (method.Modifiers.Any(SyntaxKind.OverrideKeyword)) continue;
+
+                            shouldReport = !HasXmlComment(method);
+                        }
+
+                        if (shouldReport)
+                        {
+                            var line = method.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
+                            problems.Add((
+                                document.Name,
+                                GetClassName(method),
+                                method.Identifier.Text,
+                                line
+                            ));
+                        }
+                    }
+                }
+            }
+
+            Console.WriteLine();
+            if (problems.Any())
+            {
+                Console.WriteLine($"Найдено методов без комментариев: {problems.Count}\n");
+
+                var grouped = problems.GroupBy(p => p.File);
+                foreach (var group in grouped)
+                {
+                    Console.WriteLine($"{group.Key}:");
+                    foreach (var problem in group)
+                    {
+                        Console.WriteLine($"   • {problem.Class}.{problem.Method}() → строка {problem.Line}");
+                    }
+                    Console.WriteLine();
+                }
+            }
+            else
+            {
+                Console.WriteLine("Все публичные методы имеют XML-комментарии!");
+            }
+            Console.WriteLine();
+        }
+
+        /// <summary>
+        /// Проверка наличия XML-комментария (синтаксический подход)
+        /// </summary>
+        static bool HasXmlComment(MethodDeclarationSyntax method)
+        {
+            foreach (var trivia in method.GetLeadingTrivia())
+            {
+                if (trivia.Kind() == SyntaxKind.SingleLineDocumentationCommentTrivia ||
+                    trivia.Kind() == SyntaxKind.MultiLineDocumentationCommentTrivia)
+                {
+                    if (trivia.GetStructure() is DocumentationCommentTriviaSyntax doc)
+                    {
+                        if (doc.Content.OfType<XmlElementSyntax>()
+                            .Any(e => e.StartTag.Name.ToString() == "summary"))
+                            return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Получение имени класса, в котором объявлен метод
+        /// </summary>
+        static string GetClassName(MethodDeclarationSyntax method)
+        {
+            var parent = method.Parent;
+            while (parent != null)
+            {
+                if (parent is ClassDeclarationSyntax classDecl)
+                    return classDecl.Identifier.Text;
+                parent = parent.Parent;
+            }
+            return "Unknown";
+        }
+
         static async Task AnalyzeAllClasses(Solution solution)
         {
             Console.WriteLine("Анализ всех классов в проекте");
@@ -126,7 +272,7 @@ namespace CooperativeProcurement.Analyzers
 
                     _allClasses.AddRange(walker.Classes);
 
-                    // Собираем статистику по неймспейсам
+                    // Собираем статистику по пространствам имен
                     foreach (var classInfo in walker.Classes)
                     {
                         if (!string.IsNullOrEmpty(classInfo.Namespace))
@@ -161,7 +307,7 @@ namespace CooperativeProcurement.Analyzers
             Console.WriteLine($"   Всего членов классов: {totalMembers}");
             Console.WriteLine($"   Среднее количество членов на класс: {(double)totalMembers / _allClasses.Count:F2}");
 
-            Console.WriteLine($"\n📂 Статистика по неймспейсам:");
+            Console.WriteLine($"\nСтатистика по пространствам имен:");
             foreach (var ns in _namespaceStats.OrderByDescending(x => x.Value))
             {
                 Console.WriteLine($"   • {ns.Key}: {ns.Value} классов");
