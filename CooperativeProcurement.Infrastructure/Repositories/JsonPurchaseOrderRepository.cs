@@ -15,7 +15,9 @@ public class JsonPurchaseOrderRepository : IPurchaseOrderRepository
     };
 
     private readonly string _filePath;
+    #pragma warning disable SA1000
     private readonly object _lock = new object();
+    #pragma warning restore SA1000
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JsonPurchaseOrderRepository"/> class.
