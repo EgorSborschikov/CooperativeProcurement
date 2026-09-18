@@ -1,103 +1,114 @@
-﻿using CooperativeProcurement.Core.Interfaces;
-using CooperativeProcurement.Core.Models;
 using System.Text.Json;
+using CooperativeProcurement.Core.Interfaces;
+using CooperativeProcurement.Core.Models;
 
-namespace CooperativeProcurement.Infrastructure.Repositories
+namespace CooperativeProcurement.Infrastructure.Repositories;
+
+/// <summary>
+/// Реализация репозитория с хранением данных в JSON-файле.
+/// </summary>
+public class JsonPurchaseOrderRepository : IPurchaseOrderRepository
 {
-    /// <summary>
-    /// Реализация репозитория с хранением данных в JSON-файле
-    /// </summary>
-    public class JsonPurchaseOrderRepository : IPurchaseOrderRepository
+    private static readonly JsonSerializerOptions _jsonOptions = new ()
     {
-        private readonly string _filePath;
-        private readonly object _lock = new object();
+        WriteIndented = true,
+    };
 
-        public JsonPurchaseOrderRepository(string filePath = "orders.json")
-        {
-            _filePath = filePath;
-            EnsureFileExists();
-        }
+    private readonly string _filePath;
+    private readonly object _lock = new object();
 
-        private void EnsureFileExists()
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JsonPurchaseOrderRepository"/> class.
+    /// </summary>
+    /// <param name="filePath">Путь к JSON-файлу. По умолчанию — "orders.json".</param>
+    public JsonPurchaseOrderRepository(string filePath = "orders.json")
+    {
+        this._filePath = filePath;
+        this.EnsureFileExists();
+    }
+
+    /// <inheritdoc/>
+    public async Task<IEnumerable<PurchaseOrder>> GetAllAsync()
+        => await Task.Run(() => this.LoadOrders().AsEnumerable());
+
+    /// <inheritdoc/>
+    public async Task<PurchaseOrder?> GetByIdAsync(Guid id)
+        => await Task.Run(() => this.LoadOrders().FirstOrDefault(o => o.Id == id));
+
+    /// <inheritdoc/>
+    public async Task<PurchaseOrder> CreateAsync(PurchaseOrder order)
+    {
+        return await Task.Run(() =>
         {
-            if (!File.Exists(_filePath))
+            List<PurchaseOrder> orders = this.LoadOrders();
+            order.Id = Guid.NewGuid();
+            order.OrderDate = DateTime.Now;
+            orders.Add(order);
+            this.SaveOrders(orders);
+            return order;
+        });
+    }
+
+    /// <inheritdoc/>
+    public async Task<PurchaseOrder> UpdateAsync(PurchaseOrder order)
+    {
+        return await Task.Run(() =>
+        {
+            List<PurchaseOrder> orders = this.LoadOrders();
+            int index = orders.FindIndex(o => o.Id == order.Id);
+            if (index == -1)
             {
-                // Создаем пустой массив в файле
-                var initialData = new List<PurchaseOrder>();
-                var json = JsonSerializer.Serialize(initialData, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(_filePath, json);
+                throw new InvalidOperationException($"Заказ с ID {order.Id} не найден");
             }
-        }
 
-        private List<PurchaseOrder> LoadOrders()
+            orders[index] = order;
+            this.SaveOrders(orders);
+            return order;
+        });
+    }
+
+    /// <inheritdoc/>
+    public async Task<bool> DeleteAsync(Guid id)
+    {
+        return await Task.Run(() =>
         {
-            lock (_lock)
+            List<PurchaseOrder> orders = this.LoadOrders();
+            int removed = orders.RemoveAll(o => o.Id == id);
+            if (removed > 0)
             {
-                var json = File.ReadAllText(_filePath);
-                return JsonSerializer.Deserialize<List<PurchaseOrder>>(json) ?? new List<PurchaseOrder>();
+                this.SaveOrders(orders);
+                return true;
             }
-        }
 
-        private void SaveOrders(List<PurchaseOrder> orders)
+            return false;
+        });
+    }
+
+    private void EnsureFileExists()
+    {
+        if (!File.Exists(this._filePath))
         {
-            lock (_lock)
-            {
-                var json = JsonSerializer.Serialize(orders, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(_filePath, json);
-            }
+            var initialData = new List<PurchaseOrder>();
+            string json = JsonSerializer.Serialize(initialData, _jsonOptions);
+            File.WriteAllText(this._filePath, json);
         }
+    }
 
-        public async Task<IEnumerable<PurchaseOrder>> GetAllAsync()
+    private List<PurchaseOrder> LoadOrders()
+    {
+        lock (this._lock)
         {
-            return await Task.Run(() => LoadOrders().AsEnumerable());
+            string json = File.ReadAllText(this._filePath);
+            return JsonSerializer.Deserialize<List<PurchaseOrder>>(json) ?? [];
         }
+    }
 
-        public async Task<PurchaseOrder?> GetByIdAsync(Guid id)
+    private void SaveOrders(List<PurchaseOrder> orders)
+    {
+        lock (this._lock)
         {
-            return await Task.Run(() => LoadOrders().FirstOrDefault(o => o.Id == id));
-        }
-
-        public async Task<PurchaseOrder> CreateAsync(PurchaseOrder order)
-        {
-            return await Task.Run(() =>
-            {
-                var orders = LoadOrders();
-                order.Id = Guid.NewGuid();
-                order.OrderDate = DateTime.Now;
-                orders.Add(order);
-                SaveOrders(orders);
-                return order;
-            });
-        }
-
-        public async Task<PurchaseOrder> UpdateAsync(PurchaseOrder order)
-        {
-            return await Task.Run(() =>
-            {
-                var orders = LoadOrders();
-                var index = orders.FindIndex(o => o.Id == order.Id);
-                if (index == -1)
-                    throw new InvalidOperationException($"Заказ с ID {order.Id} не найден");
-
-                orders[index] = order;
-                SaveOrders(orders);
-                return order;
-            });
-        }
-
-        public async Task<bool> DeleteAsync(Guid id)
-        {
-            return await Task.Run(() =>
-            {
-                var orders = LoadOrders();
-                var removed = orders.RemoveAll(o => o.Id == id);
-                if (removed > 0)
-                {
-                    SaveOrders(orders);
-                    return true;
-                }
-                return false;
-            });
+            string json = JsonSerializer.Serialize(orders, _jsonOptions);
+            File.WriteAllText(this._filePath, json);
         }
     }
 }

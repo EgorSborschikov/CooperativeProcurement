@@ -1,12 +1,11 @@
-﻿namespace CooperativeProcurement.Core.Models
+namespace CooperativeProcurement.Core.Models;
+
+/// <summary>
+/// Статус заказа.
+/// </summary>
+public enum OrderStatus
 {
-    /// <summary>
-    /// Статус заказа
-    /// </summary>
-    public enum OrderStatus
-    {
-        Draft,      // Черновик
-        Submitted,  // Отправлен поставщику
-        Received    // Получен
-    }
+    Draft,      // Черновик
+    Submitted,  // Отправлен поставщику
+    Received,    // Получен
 }

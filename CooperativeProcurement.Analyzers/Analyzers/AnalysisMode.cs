@@ -1,13 +1,12 @@
-﻿namespace CooperativeProcurement.Analyzers.Analyzers
+namespace CooperativeProcurement.Analyzers.Analyzers;
+
+/// <summary>
+/// Режим анализа комментариев
+/// </summary>
+public enum AnalysisMode
 {
-    /// <summary>
-    /// Режим анализа комментариев
-    /// </summary>
-    public enum AnalysisMode
-    {
-        /// <summary>Анализ через синтаксическое дерево (тривии)</summary>
-        Syntactic,
-        /// <summary>Анализ через SemanticModel (символы)</summary>
-        Semantic
-    }
+    /// <summary>Анализ через синтаксическое дерево (тривии)</summary>
+    Syntactic,
+    /// <summary>Анализ через SemanticModel (символы)</summary>
+    Semantic
 }

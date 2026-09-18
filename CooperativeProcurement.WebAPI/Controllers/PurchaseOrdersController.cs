@@ -1,146 +1,148 @@
-﻿using CooperativeProcurement.Core.Models;
+using CooperativeProcurement.Core.Models;
 using CooperativeProcurement.Core.Services;
 using CooperativeProcurement.Infrastructure.Repositories;
 using CooperativeProcurement.WebAPI.Requests;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CooperativeProcurement.WebAPI.Controllers
+namespace CooperativeProcurement.WebAPI.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+public class PurchaseOrdersController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class PurchaseOrdersController : ControllerBase
+    private readonly PurchaseOrderService _service;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PurchaseOrdersController"/> class.
+    /// </summary>
+    public PurchaseOrdersController()
     {
-        private readonly PurchaseOrderService _service;
+        // В реальном проекте используется DI, но для простоты создаем напрямую
+        var repository = new JsonPurchaseOrderRepository("orders.json");
+        this._service = new PurchaseOrderService(repository);
+    }
 
-        public PurchaseOrdersController()
+    /// <summary>
+    /// Получить все заказы.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<PurchaseOrder>>> GetOrders()
+    {
+        try
         {
-            // В реальном проекте используется DI, но для простоты создаем напрямую
-            var repository = new JsonPurchaseOrderRepository("orders.json");
-            _service = new PurchaseOrderService(repository);
+            IEnumerable<PurchaseOrder> orders = await this._service.GetAllOrdersAsync();
+            return Ok(orders);
         }
-
-        /// <summary>
-        /// Получить все заказы
-        /// </summary>
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<PurchaseOrder>>> GetOrders()
+        catch (Exception ex)
         {
-            try
-            {
-                var orders = await _service.GetAllOrdersAsync();
-                return Ok(orders);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Ошибка при получении заказов: {ex.Message}");
-            }
+            return StatusCode(500, $"Ошибка при получении заказов: {ex.Message}");
         }
+    }
 
-        /// <summary>
-        /// Получить заказ по ID
-        /// </summary>
-        [HttpGet("{id}")]
-        public async Task<ActionResult<PurchaseOrder>> GetOrder(Guid id)
+    /// <summary>
+    /// Получить заказ по ID.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    [HttpGet("{id}")]
+    public async Task<ActionResult<PurchaseOrder>> GetOrder(Guid id)
+    {
+        try
         {
-            try
-            {
-                var order = await _service.GetOrderByIdAsync(id);
-                if (order == null)
-                    return NotFound($"Заказ с ID {id} не найден");
-
-                return Ok(order);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Ошибка при получении заказа: {ex.Message}");
-            }
+            PurchaseOrder? order = await this._service.GetOrderByIdAsync(id);
+            return order == null ? (ActionResult<PurchaseOrder>)NotFound($"Заказ с ID {id} не найден") : (ActionResult<PurchaseOrder>)Ok(order);
         }
-
-        /// <summary>
-        /// Создать новый заказ
-        /// </summary>
-        [HttpPost]
-        public async Task<ActionResult<PurchaseOrder>> CreateOrder([FromBody] CreateOrderRequest request)
+        catch (ArgumentException ex)
         {
-            try
-            {
-                var order = await _service.CreateOrderAsync(request.SupplierName, request.Items);
-                return CreatedAtAction(nameof(GetOrder), new { id = order.Id }, order);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Ошибка при создании заказа: {ex.Message}");
-            }
+            return BadRequest(ex.Message);
         }
-
-        /// <summary>
-        /// Обновить статус заказа
-        /// </summary>
-        [HttpPut("{id}/status")]
-        public async Task<ActionResult<PurchaseOrder>> UpdateOrderStatus(Guid id, [FromBody] UpdateStatusRequest request)
+        catch (Exception ex)
         {
-            try
-            {
-                var order = await _service.UpdateOrderStatusAsync(id, request.Status);
-                return Ok(order);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Ошибка при обновлении статуса: {ex.Message}");
-            }
+            return StatusCode(500, $"Ошибка при получении заказа: {ex.Message}");
         }
+    }
 
-        /// <summary>
-        /// Удалить заказ
-        /// </summary>
-        [HttpDelete("{id}")]
-        public async Task<ActionResult> DeleteOrder(Guid id)
+    /// <summary>
+    /// Создать новый заказ.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    [HttpPost]
+    public async Task<ActionResult<PurchaseOrder>> CreateOrder([FromBody] CreateOrderRequest request)
+    {
+        try
         {
-            try
-            {
-                var result = await _service.DeleteOrderAsync(id);
-                if (!result)
-                    return NotFound($"Заказ с ID {id} не найден");
-
-                return NoContent();
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Ошибка при удалении заказа: {ex.Message}");
-            }
+            PurchaseOrder order = await this._service.CreateOrderAsync(request.SupplierName, request.Items);
+            return CreatedAtAction(nameof(this.GetOrder), new { id = order.Id }, order);
         }
-
-        /// <summary>
-        /// Получить общую сумму всех заказов
-        /// </summary>
-        [HttpGet("total")]
-        public async Task<ActionResult<decimal>> GetTotalAmount()
+        catch (ArgumentException ex)
         {
-            try
-            {
-                var total = await _service.GetTotalAmountAllOrdersAsync();
-                return Ok(new { TotalAmount = total });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Ошибка при подсчете суммы: {ex.Message}");
-            }
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Ошибка при создании заказа: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Обновить статус заказа.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    [HttpPut("{id}/status")]
+    public async Task<ActionResult<PurchaseOrder>> UpdateOrderStatus(Guid id, [FromBody] UpdateStatusRequest request)
+    {
+        try
+        {
+            PurchaseOrder order = await this._service.UpdateOrderStatusAsync(id, request.Status);
+            return Ok(order);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Ошибка при обновлении статуса: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Удалить заказ.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> DeleteOrder(Guid id)
+    {
+        try
+        {
+            bool result = await this._service.DeleteOrderAsync(id);
+            return !result ? NotFound($"Заказ с ID {id} не найден") : NoContent();
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Ошибка при удалении заказа: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Получить общую сумму всех заказов.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    [HttpGet("total")]
+    public async Task<ActionResult<decimal>> GetTotalAmount()
+    {
+        try
+        {
+            decimal total = await this._service.GetTotalAmountAllOrdersAsync();
+            return Ok(new { TotalAmount = total });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Ошибка при подсчете суммы: {ex.Message}");
         }
     }
 }
