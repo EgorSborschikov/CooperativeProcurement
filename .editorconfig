@@ -6,7 +6,7 @@ root = true
 [*]
 indent_style = space
 indent_size = 4
-end_of_line = crlf
+end_of_line = lf
 charset = utf-8
 trim_trailing_whitespace = true
 insert_final_newline = true
@@ -108,6 +108,13 @@ dotnet_diagnostic.S6964.severity = none
 dotnet_diagnostic.SA1602.severity = none
 dotnet_diagnostic.SA1000.severity = none
 dotnet_diagnostic.SA1614.severity = none
+
+dotnet_diagnostic.RS1036.severity = none
+dotnet_diagnostic.RS1038.severity = none
+dotnet_diagnostic.RS1041.severity = none
+dotnet_diagnostic.RS2008.severity = none
+dotnet_diagnostic.RS1012.severity = none
+dotnet_diagnostic.IDE1006.severity = none
 
 #### Оставляем включёнными важные правил
 dotnet_diagnostic.SA1001.severity = warning   # Запятые
