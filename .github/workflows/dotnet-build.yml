@@ -1,4 +1,4 @@
-name: .NET Build and Test
+name: .NET Build, Test and Publish
 
 on:
   push:
@@ -6,9 +6,17 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      packages: write
     
     steps:
     - name: Checkout code
@@ -19,14 +27,43 @@ jobs:
       with:
         dotnet-version: 8.0.x
     
-    - name: Restore dependencies
+    - name: Restore
       run: dotnet restore CooperativeProcurement.sln
     
     - name: Build
-      run: dotnet build CooperativeProcurement.sln --no-restore --configuration Release /p:TreatWarningsAsErrors=false /p:CodeAnalysisTreatWarningsAsErrors=false
+      run: dotnet build CooperativeProcurement.sln --no-restore --configuration Release
     
     - name: Test
-      run: dotnet test CooperativeProcurement.sln --no-build --configuration Release --verbosity normal
+      run: dotnet test CooperativeProcurement.sln --no-build --configuration Release
     
     - name: Check formatting
-      run: dotnet format CooperativeProcurement.sln --verify-no-changes --verbosity diagnostic
+      run: dotnet format CooperativeProcurement.sln --verify-no-changes
+    
+    - name: Log in to GitHub Container Registry
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Extract metadata for Docker
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=sha,prefix=sha-
+          type=raw,value=latest,enable={{is_default_branch}}
+    
+    - name: Build and push Docker image
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}

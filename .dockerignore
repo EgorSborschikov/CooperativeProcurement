@@ -1,0 +1,15 @@
+**/.dockerignore
+**/.git
+**/.gitignore
+**/.vs
+**/.vscode
+**/bin
+**/obj
+**/out
+**/node_modules
+**/*.user
+**/*.suo
+**/TestResults
+**/.editorconfig
+**/README.md
+**/analysis_results.json
